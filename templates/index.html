@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sleek UI with Swiping</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+    <div class="swiper-container">
+        <div class="swiper-wrapper">
+            <!-- Page 1 -->
+            <div class="swiper-slide page">
+                <div class="container">
+                    <h1>White Noise</h1>
+                    <form method="POST">
+                        <button name="wn" class="cool-button">White Noise</button>
+                        <button name="bn" class="cool-button secondary">Brown Noise</button>
+                        <div>
+                            <button name="stop" class="cool-button">STOP</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Page 2 -->
+            <div class="swiper-slide page">
+                <div class="container">
+                    <h1>Alarm</h1>
+                    {% if alarm_time %}
+                    <h1>{{ alarm_time }}</h1>
+                    {% endif %}
+                    <a href="/alarm"><button class="cool-button">New Alarm</button></a>
+
+                </div>
+            </div>
+            <!-- Page 3 Settings -->
+            <div class="swiper-slide page">
+                <div class="container">
+                    <h1>Bluetooth Settings</h1>
+                    <form method="POST">
+                        <button name = "bt" class="cool-button">Connect To Speaker</button>
+                    </form>
+                </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+    <script>
+        var swiper = new Swiper('.swiper-container', {
+            direction: 'horizontal',
+            loop: false,
+        });
+    </script>
+</body>
+</html>
