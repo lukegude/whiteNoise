@@ -1,0 +1,7 @@
+White Noise:
+
+./out -w | sox -t raw -b 32 -c 2 -e signed -r 44100 - -t raw - bass +20 lowpass 20000 | play -t raw -b 32 -c 2 -e signed -r 44100 -
+
+Brown Noise:
+
+./out -b | sox -t raw -b 32 -c 2 -e signed -r 44100 - -t raw - lowpass 300 | play -t raw -b 32 -c 2 -e signed -r 44100 -
