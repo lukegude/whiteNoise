@@ -81,40 +81,39 @@ app = Flask(__name__)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    global noise_thread_stopped, alarm_playing_thread_stopped
+
     if request.method == 'POST':
-        print(request.form)
         if 'bt' in request.form:
             return redirect(url_for('bluetooth_scan'))
-        if 'wn' in request.form or 'bn' in request.form:
-            global noise_thread_stopped
-            if threading.active_count() > 1:
-                print(threading.active_count(),'\n' ,threading.enumerate())
-                for thread in threading.enumerate():
-                    if thread.name == 'noise_thread' or thread.name == 'process_request_thread':
-                        noise_thread_stopped = True
-                        if thread.is_alive():
-                            thread.join()
+
+        elif 'wn' in request.form or 'bn' in request.form:
+            noise_thread_stopped = True
+
+            for thread in threading.enumerate():
+                if thread.name == 'noise_thread':
+                    thread.join()
+                    break
+
             if 'wn' in request.form:
-                print('Starting white noise')
                 threading.Thread(target=start_white_noise, name='noise_thread').start()
-            if 'bn' in request.form:
-                print('Starting brown noise')
+            else:
                 threading.Thread(target=start_brown_noise, name='noise_thread').start()
-        if 'sleep' in request.form:
+
+        elif 'sleep' in request.form:
             subprocess.Popen(["./toggle_touch.sh"], stdout=subprocess.PIPE)
 
+        elif 'stop' in request.form:
+            alarm_playing_thread_stopped = True
+            noise_thread_stopped = True
 
-        if 'stop' in request.form:
-            global alarm_playing_thread_stopped
-            if not alarm_playing_thread_stopped:
-                alarm_playing_thread_stopped = True
-            else:
-                noise_thread_stopped = True
-    if alarm_time:
-        formatted_alarm_time = alarm_time.strftime('%I:%M %p')
-    else:
-        formatted_alarm_time = None
+        else:
+            return redirect(url_for('index'))
+
+    formatted_alarm_time = alarm_time.strftime('%I:%M %p') if alarm_time else None
+
     return render_template('index.html', alarm_time=formatted_alarm_time)
+
 
 
 @app.route('/stop_alarm', methods=['GET', 'POST'])
