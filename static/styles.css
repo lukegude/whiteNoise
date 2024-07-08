@@ -65,7 +65,7 @@ body, html {
 }
 
 .cool-button.secondary {
-    background: #007bff; /* Consistent bright blue for secondary buttons */
+    background: #8d0000; /* Complimentary color to #333 for better contrast */
 }
 
 .cool-button.time {

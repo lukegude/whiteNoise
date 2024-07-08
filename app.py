@@ -206,11 +206,13 @@ def stop_alarm():
         alarm_playing_thread_stopped = True
         if threading.active_count() > 1:
             for thread in threading.enumerate():
-                print(thread.name)
                 if thread.name == "alarm_playing_thread":
                     alarm_playing_thread_stopped = True
                     if thread.is_alive():
-                        thread.join()
+                        try:
+                            os.kill(thread.ident, signal.SIGKILL)
+                        except OverflowError:
+                            print("OverflowError: signed integer is greater than maximum")
         return redirect(url_for("index"))
 
     return render_template("stop.html")
