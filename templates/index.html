@@ -41,7 +41,6 @@
                     <h1>White Noise</h1>
                     <form method="POST">
                         <button name="wn" class="cool-button">White Noise</button>
-                        <button name="bn" class="cool-button secondary">Brown Noise</button>
                         <div>
                             <button name="stop" class="cool-button">STOP</button>
                         </div>
@@ -55,9 +54,12 @@
                     <h1>Alarm</h1>
                     {% if alarm_time %}
                     <h1>{{ alarm_time }}</h1>
-                    {% endif %}
                     <a href="/alarm"><button class="cool-button">New Alarm</button></a>
-
+                    <a href="/delete_alarm"><button class="cool-button">Delete Alarm</button></a>
+                    {% else %}
+                    <h1>No Alarm Set</h1>
+                    <a href="/alarm"><button class="cool-button">New Alarm</button></a>
+                    {% endif %}
                 </div>
             </div>
             <!-- Page 3 Settings -->

@@ -224,30 +224,51 @@ def bluetooth_scan():
 
 @app.route("/alarm", methods=["GET", "POST"])
 def alarm():
+    global alarm_time, alarm_thread_stopped
     if request.method == "POST":
-        global alarm_time
-        alarm_time = datetime.strptime(request.form["i_time"], "%I:%M %p")
-        alarm_time = alarm_time.replace(
+        new_alarm_time = datetime.strptime(request.form["i_time"], "%I:%M %p")
+        new_alarm_time = new_alarm_time.replace(
             year=datetime.now().year, month=datetime.now().month, day=datetime.now().day
         )
 
-        if alarm_time < datetime.now():
-            alarm_time += timedelta(days=1)
+        if new_alarm_time < datetime.now():
+            new_alarm_time += timedelta(days=1)
 
+        if alarm_time:
+            alarm_thread_stopped = True
+            if threading.active_count() > 1:
+                for thread in threading.enumerate():
+                    if thread.name == "alarm_thread":
+                        if thread.is_alive():
+                            thread.join()
+
+        alarm_time = new_alarm_time
         with open("alarm.txt", "w") as f:
             f.write(alarm_time.strftime("%Y-%m-%d %H:%M:%S"))
 
-        if threading.active_count() > 1:
-            for thread in threading.enumerate():
-                print(thread.name)
-                if thread.name == "alarm_thread":
-                    alarm_thread_stopped = True
-                    if thread.is_alive():
-                        thread.join()
-        print(threading.enumerate())
         threading.Thread(target=alarm_thread, name="alarm_thread").start()
         return redirect(url_for("index"))
     return render_template("alarm.html")
+
+
+@app.route("/delete_alarm", methods=["GET", "POST"])
+def delete_alarm():
+    global alarm_time, alarm_thread_stopped
+    print("Delete alarm request received")  # Debugging line
+    alarm_time = None
+    alarm_thread_stopped = True
+    if threading.active_count() > 1:
+        for thread in threading.enumerate():
+            if thread.name == "alarm_thread":
+                if thread.is_alive():
+                    try:
+                        os.kill(thread.ident, signal.SIGKILL)
+                    except OverflowError:
+                        print("OverflowError: signed integer is greater than maximum")
+    with open("alarm.txt", "w") as f:
+        f.write("")
+    print("Alarm deleted successfully")  # Debugging line
+    return redirect(url_for("index"))
 
 
 if __name__ == "__main__":

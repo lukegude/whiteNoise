@@ -48,31 +48,36 @@ body, html {
 }
 
 .cool-button {
-    background: #333;
-    color: #fff;
+    background: #333; /* Bright blue for better visibility */
+    color: #fff; /* White text for high contrast */
     border: none;
     padding: 15px 30px;
-    font-size: 16px;
+    font-size: 16px; /* Increased font size for readability */
     border-radius: 50px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
     cursor: pointer;
     outline: none;
     margin: 10px;
     transition: transform 0.2s ease;
-}
-
-.cool-button:hover {
-    transform: translateY(-2px);
+    /* Added for accessibility */
+    font-weight: bold; /* Makes text more readable */
+    text-decoration: none; /* Prevents underlining */
 }
 
 .cool-button.secondary {
-    background: #8fd3f4;
+    background: #007bff; /* Consistent bright blue for secondary buttons */
 }
 
 .cool-button.time {
-    background: #84fab0;
-    color: #333;
+    background: #007bff; /* Consistent bright blue for time buttons */
+    color: #fff; /* White text for high contrast */
 }
+/* Added for accessibility */
+.cool-button:focus {
+    box-shadow: 0 0 0 2px #fff; /* Provides visual feedback for focus state */
+}
+
+
 
 
 select {
@@ -116,7 +121,9 @@ select:after {
 
 h1 {
     color: #fff;
-    margin-bottom: 30px;
+    margin-bottom: 32px;
+    font-size: 2.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 
