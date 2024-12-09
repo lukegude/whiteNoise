@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime, timedelta
 import subprocess, os, signal, time, sys, threading
+from flask_wtf.csrf import CSRFProtect
 
 
 alarm_time = None
@@ -10,61 +11,72 @@ alarm_playing_thread_stopped = False
 
 
 def start_white_noise():
-    global noise_thread_stopped
-    noise_thread_stopped = False
-    p1 = subprocess.Popen(["./out", "-w"], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(
-        [
-            "sox",
-            "-t",
-            "raw",
-            "-b",
-            "32",
-            "-c",
-            "2",
-            "-e",
-            "signed",
-            "-r",
-            "44100",
-            "-",
-            "-t",
-            "raw",
-            "-",
-            "bass",
-            "+20",
-            "lowpass",
-            "20000",
-        ],
-        stdin=p1.stdout,
-        stdout=subprocess.PIPE,
-    )
-    p3 = subprocess.Popen(
-        [
-            "play",
-            "-t",
-            "raw",
-            "-b",
-            "32",
-            "-c",
-            "2",
-            "-e",
-            "signed",
-            "-r",
-            "44100",
-            "-",
-        ],
-        stdin=p2.stdout,
-        stdout=subprocess.PIPE,
-    )
-    # Check if the noise thread is false
-    while not noise_thread_stopped:
-        pass
-    print("Noise thread stopped")
-    p1.kill()
-    p2.kill()
-    p3.kill()
+    def run_white_noise():
+        global noise_thread_stopped
+        noise_thread_stopped = False
+        p1 = subprocess.Popen(["./out", "-w"], stdout=subprocess.PIPE)
+        p2 = subprocess.Popen(
+            [
+                "sox",
+                "-t",
+                "raw",
+                "-b",
+                "32",
+                "-c",
+                "2",
+                "-e",
+                "signed",
+                "-r",
+                "44100",
+                "-",
+                "-t",
+                "raw",
+                "-",
+                "bass",
+                "+20",
+                "lowpass",
+                "20000",
+            ],
+            stdin=p1.stdout,
+            stdout=subprocess.PIPE,
+        )
+        p3 = subprocess.Popen(
+            [
+                "play",
+                "-t",
+                "raw",
+                "-b",
+                "32",
+                "-c",
+                "2",
+                "-e",
+                "signed",
+                "-r",
+                "44100",
+                "-",
+            ],
+            stdin=p2.stdout,
+        )
+        p1.stdout.close()
+        p2.stdout.close()
 
-    return
+        while not noise_thread_stopped:
+            time.sleep(0.1)
+
+        p1.terminate()
+        p2.terminate()
+        p3.terminate()
+        try:
+            p1.wait(timeout=1)
+            p2.wait(timeout=1)
+            p3.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            p1.kill()
+            p2.kill()
+            p3.kill()
+
+    # Start in a new thread
+    threading.Thread(target=run_white_noise, daemon=True).start()
 
 
 def start_brown_noise():
@@ -161,38 +173,60 @@ def alarm_thread():
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.urandom(32)  # Generate a random secret key
+app.config['SESSION_COOKIE_SECURE'] = False  # Allow non-HTTPS cookies
+app.config['PREFERRED_URL_SCHEME'] = 'http'  # Use HTTP scheme
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit for CSRF tokens
+app.config['WTF_CSRF_SSL_STRICT'] = False  # Don't require HTTPS for CSRF
 
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     global noise_thread_stopped, alarm_playing_thread_stopped
 
+    if request.method == "GET" and "action" in request.args:
+        action = request.args.get("action")
+        if action == "wn":
+            threading.Thread(target=start_white_noise, daemon=True).start()
+            time.sleep(0.1)
+            return redirect(url_for("index"))
+        elif action == "stop":
+            global alarm_thread_stopped
+            if not alarm_playing_thread_stopped:
+                alarm_thread_stopped = True
+                alarm_playing_thread_stopped = True
+                try:
+                    subprocess.run(["pkill", "-f", "alarm.mp3"], check=False)
+                except Exception:
+                    pass
+            else:
+                noise_thread_stopped = True
+                try:
+                    subprocess.run(["pkill", "sox"], check=False)
+                except Exception:
+                    pass
+            return redirect(url_for("index"))
+        elif action == "bt":
+            return redirect(url_for("bluetooth_scan"))
+
     if request.method == "POST":
         if "bt" in request.form:
             return redirect(url_for("bluetooth_scan"))
 
         elif "wn" in request.form or "bn" in request.form:
-            noise_thread_stopped = True
-
-            for thread in threading.enumerate():
-                if thread.name == "noise_thread":
-                    thread.join()
-                    break
-
             if "wn" in request.form:
-                threading.Thread(target=start_white_noise, name="noise_thread").start()
+                threading.Thread(target=start_white_noise, daemon=True).start()
             else:
-                threading.Thread(target=start_brown_noise, name="noise_thread").start()
-
-        elif "sleep" in request.form:
-            subprocess.Popen(["./toggle_touch.sh"], stdout=subprocess.PIPE)
-
+                start_brown_noise()
         elif "stop" in request.form:
-            alarm_playing_thread_stopped = True
             noise_thread_stopped = True
-
-        else:
-            return redirect(url_for("index"))
+            alarm_thread_stopped = True
+            alarm_playing_thread_stopped = True
+            try:
+                subprocess.run(["pkill", "sox"], check=False)
+            except Exception:
+                pass
 
     formatted_alarm_time = alarm_time.strftime("%I:%M %p") if alarm_time else None
 
@@ -273,6 +307,28 @@ def delete_alarm():
     return redirect(url_for("index"))
 
 
+@app.route("/set_alarm", methods=["GET"])
+def set_alarm():
+    if "i_time" in request.args:
+        time_str = request.args.get("i_time")
+        try:
+            global alarm_time
+            alarm_time = datetime.strptime(time_str, "%I:%M %p")
+            alarm_time = alarm_time.replace(
+                year=datetime.now().year,
+                month=datetime.now().month,
+                day=datetime.now().day,
+            )
+            if alarm_time < datetime.now():
+                alarm_time += timedelta(days=1)
+            with open("alarm.txt", "w") as f:
+                f.write(alarm_time.strftime("%Y-%m-%d %H:%M:%S"))
+            threading.Thread(target=alarm_thread, name="alarm_thread").start()
+        except ValueError:
+            pass
+    return redirect(url_for("index"))
+
+
 if __name__ == "__main__":
     with open("alarm.txt", "r") as f:
         try:
@@ -280,4 +336,4 @@ if __name__ == "__main__":
             threading.Thread(target=alarm_thread).start()
         except ValueError:
             alarm_time = None
-    app.run(debug=True)
+    app.run(host="0.0.0.0",debug=True)
