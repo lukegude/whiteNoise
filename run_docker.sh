@@ -12,10 +12,13 @@ run_container() {
     docker run -it --rm \
         -p 5000:5000 \
         --device /dev/snd \
-        -v /run/user/$(id -u)/pulse:/run/user/$(id -u)/pulse \
-        -v ${XDG_RUNTIME_DIR}/pulse/native:${XDG_RUNTIME_DIR}/pulse/native \
-        -e PULSE_SERVER=unix:${XDG_RUNTIME_DIR}/pulse/native \
+        -e PULSE_SERVER=unix:/run/pulse/native \
+        -v /run/pulse:/run/pulse \
+        -v /etc/asound.conf:/etc/asound.conf:ro \
+        -v /dev/shm:/dev/shm \
+        -v /var/run/dbus:/var/run/dbus \
         -v ~/.config/pulse/cookie:/root/.config/pulse/cookie \
+        --group-add $(getent group audio | cut -d: -f3) \
         --privileged \
         $IMAGE_NAME
 }
