@@ -14,69 +14,105 @@ def start_white_noise():
     def run_white_noise():
         global noise_thread_stopped
         noise_thread_stopped = False
-        p1 = subprocess.Popen(["./out", "-w"], stdout=subprocess.PIPE)
-        p2 = subprocess.Popen(
-            [
-                "sox",
-                "-t",
-                "raw",
-                "-b",
-                "32",
-                "-c",
-                "2",
-                "-e",
-                "signed",
-                "-r",
-                "44100",
-                "-",
-                "-t",
-                "raw",
-                "-",
-                "bass",
-                "+20",
-                "lowpass",
-                "20000",
-            ],
-            stdin=p1.stdout,
-            stdout=subprocess.PIPE,
-        )
-        p3 = subprocess.Popen(
-            [
-                "play",
-                "-t",
-                "raw",
-                "-b",
-                "32",
-                "-c",
-                "2",
-                "-e",
-                "signed",
-                "-r",
-                "44100",
-                "-",
-            ],
-            stdin=p2.stdout,
-        )
-        p1.stdout.close()
-        p2.stdout.close()
-
+        processes = None
+        
+        def create_pipeline():
+            p1 = subprocess.Popen(["./out", "-w"], stdout=subprocess.PIPE)
+            p2 = subprocess.Popen(
+                [
+                    "sox",
+                    "-t",
+                    "raw",
+                    "-b",
+                    "32",
+                    "-c",
+                    "2",
+                    "-e",
+                    "signed",
+                    "-r",
+                    "44100",
+                    "-",
+                    "-t",
+                    "raw",
+                    "-",
+                    "bass",
+                    "+20",
+                    "lowpass",
+                    "20000",
+                ],
+                stdin=p1.stdout,
+                stdout=subprocess.PIPE,
+            )
+            p3 = subprocess.Popen(
+                [
+                    "play",
+                    "-t",
+                    "raw",
+                    "-b",
+                    "32",
+                    "-c",
+                    "2",
+                    "-e",
+                    "signed",
+                    "-r",
+                    "44100",
+                    "-",
+                    "fade",
+                    "q",
+                    "0.5",
+                ],
+                stdin=p2.stdout,
+            )
+            p1.stdout.close()
+            p2.stdout.close()
+            return (p1, p2, p3)
+            
         while not noise_thread_stopped:
-            time.sleep(0.1)
+            new_processes = create_pipeline()
+            if processes:
+                time.sleep(0.1)
+                old_p1, old_p2, old_p3 = processes
+                old_p3.terminate()
+                old_p2.terminate()
+                old_p1.terminate()
+                try:
+                    old_p3.wait(timeout=1)
+                    old_p2.wait(timeout=1)
+                    old_p1.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    old_p3.kill()
+                    old_p2.kill()
+                    old_p1.kill()
+            
+            processes = new_processes
+            
+            try:
+                processes[2].wait(timeout=600)
+            except subprocess.TimeoutExpired:
+                if noise_thread_stopped:
+                    break
+                continue
 
-        p1.terminate()
-        p2.terminate()
-        p3.terminate()
-        try:
-            p1.wait(timeout=1)
-            p2.wait(timeout=1)
-            p3.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            p1.kill()
-            p2.kill()
-            p3.kill()
+            if noise_thread_stopped:
+                break
 
-    # Start in a new thread
-    threading.Thread(target=run_white_noise, daemon=True).start()
+        if processes:
+            p1, p2, p3 = processes
+            p3.terminate()
+            p2.terminate()
+            p1.terminate()
+            try:
+                p3.wait(timeout=1)
+                p2.wait(timeout=1)
+                p1.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                p3.kill()
+                p2.kill()
+                p1.kill()
+
+    noise_thread = threading.Thread(target=run_white_noise)
+    noise_thread.daemon = True
+    noise_thread.start()
 
 
 def start_brown_noise():
