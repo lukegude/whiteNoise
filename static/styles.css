@@ -14,13 +14,13 @@ body, html {
 }
 
 .swiper-wrapper {
-    background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 300%); 
+    background: linear-gradient(120deg, #080808 0%, #454545 300%); 
     display: flex;
     width: 300%; 
 }
 
 .swiper-wrapper-n {
-    background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%); 
+    background: linear-gradient(120deg, #080808 0%, #454545 100%); 
     display: flex;
     align-items: center;
     width: 100%; 

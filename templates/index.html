@@ -1,15 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sleek UI with Swiping</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>White Noise</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <!-- <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css"> -->
     <link rel="stylesheet" href="static/swiper.css">
 
     <link rel="stylesheet" href="static/styles.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 
 <style>
 .material-symbols-outlined {
@@ -25,19 +31,13 @@
 
 
 </head>
+
 <body>
     <div class="swiper-container">
         <div class="swiper-wrapper">
             <!-- Page 1 -->
             <div class="swiper-slide page">
                 <div class="container">
-                <div class="sleep">
-                <form method="POST">
-                    <button name = "sleep" class="cool-button sleep">
-                        <span class="material-symbols-outlined">dark_mode</span>
-                    </button>
-                </form>
-                </div>
                     <h1>White Noise</h1>
                     <form method="POST">
                         <button name="wn" class="cool-button">White Noise</button>
@@ -61,25 +61,26 @@
                     <a href="/alarm"><button class="cool-button">New Alarm</button></a>
                     {% endif %}
                 </div>
-            </div>
-            <!-- Page 3 Settings -->
-            <div class="swiper-slide page">
-                <div class="container">
-                    <h1>Bluetooth Settings</h1>
-                    <form method="POST">
-                        <button name = "bt" class="cool-button">Connect To Speaker</button>
-                    </form>
-                </div>
         </div>
     </div>
 
     <!-- <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script> -->
     <script src="static/swiper.js"></script>
     <script>
+            document.addEventListener('DOMContentLoaded', function () {
         var swiper = new Swiper('.swiper-container', {
             direction: 'horizontal',
             loop: false,
+                    touchRatio: 1,
+                    resistance: true,
+                    resistanceRatio: 0.85,
+                    touchStartPreventDefault: false,
+                    touchMoveStopPropagation: true,
+                    longSwipesRatio: 0.3,
+                    touchAngle: 45,
+                });
         });
     </script>
 </body>
+
 </html>

@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from datetime import datetime, timedelta
 import subprocess, os, signal, time, sys, threading
+from flask_wtf.csrf import CSRFProtect
+
 
 
 alarm_time = None
@@ -34,6 +36,8 @@ def start_white_noise():
             "+20",
             "lowpass",
             "20000",
+            "vol",
+            "0.35",
         ],
         stdin=p1.stdout,
         stdout=subprocess.PIPE,
@@ -161,13 +165,17 @@ def alarm_thread():
 
 
 app = Flask(__name__)
-
+app.secret_key = os.urandom(24)  # Generate a secure secret key
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for development
+app.config['REMEMBER_COOKIE_SECURE'] = False  # Set to False for development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for development
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     global noise_thread_stopped, alarm_playing_thread_stopped
 
-    if request.method == "POST":
+    if request.method == "POST" :
         if "bt" in request.form:
             return redirect(url_for("bluetooth_scan"))
 
@@ -280,4 +288,4 @@ if __name__ == "__main__":
             threading.Thread(target=alarm_thread).start()
         except ValueError:
             alarm_time = None
-    app.run(debug=True)
+    app.run("0.0.0.0",debug=True)
