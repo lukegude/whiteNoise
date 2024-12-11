@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 import subprocess, os, signal, time, sys, threading
 from flask_wtf.csrf import CSRFProtect
 
-from flask_wtf.csrf import CSRFProtect
 
 
 alarm_time = None
@@ -181,18 +180,24 @@ def index():
             return redirect(url_for("bluetooth_scan"))
 
         elif "wn" in request.form or "bn" in request.form:
-            if "wn" in request.form:
-                threading.Thread(target=start_white_noise, daemon=True).start()
-            else:
-                start_brown_noise()
-        elif "stop" in request.form:
             noise_thread_stopped = True
-            alarm_thread_stopped = True
+
+            for thread in threading.enumerate():
+                if thread.name == "noise_thread":
+                    thread.join()
+                    break
+
+            if "wn" in request.form:
+                threading.Thread(target=start_white_noise, name="noise_thread").start()
+            else:
+                threading.Thread(target=start_brown_noise, name="noise_thread").start()
+
+        elif "stop" in request.form:
             alarm_playing_thread_stopped = True
-            try:
-                subprocess.run(["pkill", "sox"], check=False)
-            except Exception:
-                pass
+            noise_thread_stopped = True
+
+        else:
+            return redirect(url_for("index"))
 
     formatted_alarm_time = alarm_time.strftime("%I:%M %p") if alarm_time else None
 
@@ -270,28 +275,6 @@ def delete_alarm():
     with open("alarm.txt", "w") as f:
         f.write("")
     print("Alarm deleted successfully")  # Debugging line
-    return redirect(url_for("index"))
-
-
-@app.route("/set_alarm", methods=["GET"])
-def set_alarm():
-    if "i_time" in request.args:
-        time_str = request.args.get("i_time")
-        try:
-            global alarm_time
-            alarm_time = datetime.strptime(time_str, "%I:%M %p")
-            alarm_time = alarm_time.replace(
-                year=datetime.now().year,
-                month=datetime.now().month,
-                day=datetime.now().day,
-            )
-            if alarm_time < datetime.now():
-                alarm_time += timedelta(days=1)
-            with open("alarm.txt", "w") as f:
-                f.write(alarm_time.strftime("%Y-%m-%d %H:%M:%S"))
-            threading.Thread(target=alarm_thread, name="alarm_thread").start()
-        except ValueError:
-            pass
     return redirect(url_for("index"))
 
 
